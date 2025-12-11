@@ -13,10 +13,12 @@ import { LobeChatDatabase } from '../type';
 export class AiModelModel {
   private userId: string;
   private db: LobeChatDatabase;
+  private adminUserId: string;
 
   constructor(db: LobeChatDatabase, userId: string) {
     this.userId = userId;
     this.db = db;
+    this.adminUserId = process.env.ADMIN_USER_ID || '';
   }
 
   /**
@@ -59,14 +61,22 @@ export class AiModelModel {
   };
 
   query = async () => {
-    return this.db.query.aiModels.findMany({
+    // 首先尝试使用 adminUserId 查询
+    let result = await this.db.query.aiModels.findMany({
       orderBy: [desc(aiModels.updatedAt)],
-      where: eq(aiModels.userId, this.userId),
+      where: eq(aiModels.userId, this.adminUserId),
     });
+    if (result.length === 0) {
+      result = await this.db.query.aiModels.findMany({
+        orderBy: [desc(aiModels.updatedAt)],
+        where: eq(aiModels.userId, this.userId),
+      });
+    }
+    return result;
   };
 
   getModelListByProviderId = async (providerId: string) => {
-    const result = await this.db
+    let result = await this.db
       .select({
         abilities: aiModels.abilities,
         config: aiModels.config,
@@ -82,19 +92,44 @@ export class AiModelModel {
         type: aiModels.type,
       })
       .from(aiModels)
-      .where(and(eq(aiModels.providerId, providerId), eq(aiModels.userId, this.userId)))
+      .where(and(eq(aiModels.providerId, providerId), eq(aiModels.userId, this.adminUserId)))
       .orderBy(
         asc(aiModels.sort),
         desc(aiModels.enabled),
         desc(aiModels.releasedAt),
         desc(aiModels.updatedAt),
       );
+    if (result.length === 0) {
+      result = await this.db
+        .select({
+          abilities: aiModels.abilities,
+          config: aiModels.config,
+          contextWindowTokens: aiModels.contextWindowTokens,
+          description: aiModels.description,
+          displayName: aiModels.displayName,
+          enabled: aiModels.enabled,
+          id: aiModels.id,
+          parameters: aiModels.parameters,
+          pricing: aiModels.pricing,
+          releasedAt: aiModels.releasedAt,
+          source: aiModels.source,
+          type: aiModels.type,
+        })
+        .from(aiModels)
+        .where(and(eq(aiModels.providerId, providerId), eq(aiModels.userId, this.userId)))
+        .orderBy(
+          asc(aiModels.sort),
+          desc(aiModels.enabled),
+          desc(aiModels.releasedAt),
+          desc(aiModels.updatedAt),
+        );
+    }
 
     return result as AiProviderModelListItem[];
   };
 
   getAllModels = async () => {
-    const data = await this.db
+    let data = await this.db
       .select({
         abilities: aiModels.abilities,
         config: aiModels.config,
@@ -109,15 +144,39 @@ export class AiModelModel {
         type: aiModels.type,
       })
       .from(aiModels)
-      .where(and(eq(aiModels.userId, this.userId)));
+      .where(and(eq(aiModels.userId, this.adminUserId)));
+    if (data.length === 0) {
+      data = await this.db
+        .select({
+          abilities: aiModels.abilities,
+          config: aiModels.config,
+          contextWindowTokens: aiModels.contextWindowTokens,
+          displayName: aiModels.displayName,
+          enabled: aiModels.enabled,
+          id: aiModels.id,
+          parameters: aiModels.parameters,
+          providerId: aiModels.providerId,
+          sort: aiModels.sort,
+          source: aiModels.source,
+          type: aiModels.type,
+        })
+        .from(aiModels)
+        .where(and(eq(aiModels.userId, this.userId)));
+    }
 
     return data as EnabledAiModel[];
   };
 
   findById = async (id: string) => {
-    return this.db.query.aiModels.findFirst({
-      where: and(eq(aiModels.id, id), eq(aiModels.userId, this.userId)),
+    let result = await this.db.query.aiModels.findFirst({
+      where: and(eq(aiModels.id, id), eq(aiModels.userId, this.adminUserId)),
     });
+    if (!result) {
+      result = await this.db.query.aiModels.findFirst({
+        where: and(eq(aiModels.id, id), eq(aiModels.userId, this.userId)),
+      });
+    }
+    return result;
   };
 
   update = async (id: string, providerId: string, value: Partial<AiModelSelectItem>) => {
