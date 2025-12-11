@@ -22,10 +22,12 @@ type EncryptUserKeyVaults = (keyVaults: string) => Promise<string>;
 export class AiProviderModel {
   private userId: string;
   private db: LobeChatDatabase;
+  private adminUserId: string;
 
   constructor(db: LobeChatDatabase, userId: string) {
     this.userId = userId;
     this.db = db;
+    this.adminUserId = process.env.ADMIN_USER_ID || '';
   }
 
   create = async (
@@ -70,14 +72,21 @@ export class AiProviderModel {
   };
 
   query = async () => {
-    return this.db.query.aiProviders.findMany({
+    let result = await this.db.query.aiProviders.findMany({
       orderBy: [desc(aiProviders.updatedAt)],
-      where: eq(aiProviders.userId, this.userId),
+      where: eq(aiProviders.userId, this.adminUserId),
     });
+    if (result.length === 0) {
+      result = await this.db.query.aiProviders.findMany({
+        orderBy: [desc(aiProviders.updatedAt)],
+        where: eq(aiProviders.userId, this.userId),
+      });
+    }
+    return result;
   };
 
   getAiProviderList = async (): Promise<AiProviderListItem[]> => {
-    const result = await this.db
+    let result = await this.db
       .select({
         description: aiProviders.description,
         enabled: aiProviders.enabled,
@@ -88,16 +97,38 @@ export class AiProviderModel {
         source: aiProviders.source,
       })
       .from(aiProviders)
-      .where(eq(aiProviders.userId, this.userId))
+      .where(eq(aiProviders.userId, this.adminUserId))
       .orderBy(asc(aiProviders.sort), desc(aiProviders.updatedAt));
+
+    if (result.length === 0) {
+      result = await this.db
+        .select({
+          description: aiProviders.description,
+          enabled: aiProviders.enabled,
+          id: aiProviders.id,
+          logo: aiProviders.logo,
+          name: aiProviders.name,
+          sort: aiProviders.sort,
+          source: aiProviders.source,
+        })
+        .from(aiProviders)
+        .where(eq(aiProviders.userId, this.userId))
+        .orderBy(asc(aiProviders.sort), desc(aiProviders.updatedAt));
+    }
 
     return result as AiProviderListItem[];
   };
 
   findById = async (id: string) => {
-    return this.db.query.aiProviders.findFirst({
-      where: and(eq(aiProviders.id, id), eq(aiProviders.userId, this.userId)),
+    let result = await this.db.query.aiProviders.findFirst({
+      where: and(eq(aiProviders.id, id), eq(aiProviders.userId, this.adminUserId)),
     });
+    if (!result) {
+      result = await this.db.query.aiProviders.findFirst({
+        where: and(eq(aiProviders.id, id), eq(aiProviders.userId, this.userId)),
+      });
+    }
+    return result;
   };
 
   update = async (id: string, value: Partial<AiProviderSelectItem>) => {
@@ -181,7 +212,7 @@ export class AiProviderModel {
     id: string,
     decryptor?: DecryptUserKeyVaults,
   ): Promise<AiProviderDetailItem | undefined> => {
-    const query = this.db
+    let query = this.db
       .select({
         checkModel: aiProviders.checkModel,
         config: aiProviders.config,
@@ -196,10 +227,31 @@ export class AiProviderModel {
         source: aiProviders.source,
       })
       .from(aiProviders)
-      .where(and(eq(aiProviders.id, id), eq(aiProviders.userId, this.userId)))
+      .where(and(eq(aiProviders.id, id), eq(aiProviders.userId, this.adminUserId)))
       .limit(1);
 
-    const [result] = await query;
+    let [result] = await query;
+    if (!result) {
+      query = this.db
+        .select({
+          checkModel: aiProviders.checkModel,
+          config: aiProviders.config,
+          description: aiProviders.description,
+          enabled: aiProviders.enabled,
+          fetchOnClient: aiProviders.fetchOnClient,
+          id: aiProviders.id,
+          keyVaults: aiProviders.keyVaults,
+          logo: aiProviders.logo,
+          name: aiProviders.name,
+          settings: aiProviders.settings,
+          source: aiProviders.source,
+        })
+        .from(aiProviders)
+        .where(and(eq(aiProviders.id, id), eq(aiProviders.userId, this.userId)))
+        .limit(1);
+
+      [result] = await query;
+    }
 
     if (!result) {
       // if the provider is builtin but not init, we will insert it to the db
@@ -235,7 +287,7 @@ export class AiProviderModel {
   };
 
   getAiProviderRuntimeConfig = async (decryptor?: DecryptUserKeyVaults) => {
-    const result = await this.db
+    let result = await this.db
       .select({
         config: aiProviders.config,
         fetchOnClient: aiProviders.fetchOnClient,
@@ -244,7 +296,19 @@ export class AiProviderModel {
         settings: aiProviders.settings,
       })
       .from(aiProviders)
-      .where(and(eq(aiProviders.userId, this.userId)));
+      .where(and(eq(aiProviders.userId, this.adminUserId)));
+    if (result.length === 0) {
+      result = await this.db
+        .select({
+          config: aiProviders.config,
+          fetchOnClient: aiProviders.fetchOnClient,
+          id: aiProviders.id,
+          keyVaults: aiProviders.keyVaults,
+          settings: aiProviders.settings,
+        })
+        .from(aiProviders)
+        .where(and(eq(aiProviders.userId, this.userId)));
+    }
 
     const decrypt = decryptor ?? JSON.parse;
     let runtimeConfig: Record<string, AiProviderRuntimeConfig> = {};
