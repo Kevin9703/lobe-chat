@@ -36,6 +36,8 @@ import {
   messageTranslates,
   messages,
   messagesFiles,
+  topics,
+  users,
 } from '../schemas';
 import { LobeChatDatabase } from '../type';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
@@ -449,6 +451,75 @@ export class MessageModel {
       .limit(n + 1);
 
     return result.length > n;
+  };
+
+  // 获取指定会话下所有话题的最新AI回复（不区分用户）
+  getLatestAssistantRepliesBySession = async (sessionId: string) => {
+    // 获取指定会话下的所有话题
+    const topicsInSession = await this.db
+      .select({
+        id: topics.id,
+        title: topics.title,
+        userId: topics.userId,
+      })
+      .from(topics)
+      .where(eq(topics.sessionId, sessionId));
+
+    if (topicsInSession.length === 0 || !sessionId) return [];
+
+    const topicIds = topicsInSession.map((topic) => topic.id);
+    const latestReplies = await Promise.all(
+      topicIds.map(async (topicId) => {
+        const topic = topicsInSession.find((t) => t.id === topicId);
+        if (!topic) return null;
+
+        // 查询用户信息
+        let userName = '未知用户';
+        let memories: any[] = [];
+        if (topic.userId) {
+          const user = await this.db
+            .select({ fullName: users.fullName })
+            .from(users)
+            .where(eq(users.id, topic.userId))
+            .limit(1);
+
+          if (user.length > 0 && user[0].fullName) {
+            userName = user[0].fullName;
+          }
+        }
+        const latestReply = await this.db
+          .select({
+            content: messages.content,
+            createdAt: messages.createdAt,
+            id: messages.id,
+            model: messages.model,
+            provider: messages.provider,
+            topicId: messages.topicId,
+          })
+          .from(messages)
+          .where(and(eq(messages.topicId, topicId), eq(messages.role, 'assistant')))
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+
+        if (latestReply.length === 0) return null;
+        const latestMessage = { ...latestReply[0] };
+        if (memories.length > 0) {
+          latestMessage.content = memories[0].memory;
+        }
+
+        return {
+          ...latestMessage,
+          fromExternal: false,
+          topicTitle: topic.title || '未命名话题',
+          userName, // 标记数据来源
+        };
+      }),
+    );
+
+    // 过滤掉没有回复的话题，并按创建时间排序
+    return latestReplies
+      .filter((reply) => reply !== null)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   };
 
   // **************** Create *************** //

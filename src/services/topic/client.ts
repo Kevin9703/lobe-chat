@@ -1,14 +1,19 @@
 import { INBOX_SESSION_ID } from '@/const/session';
 import { clientDB } from '@/database/client/db';
+import { MessageModel } from '@/database/models/message';
 import { TopicModel } from '@/database/models/topic';
 import { BaseClientService } from '@/services/baseClientService';
 import { ChatTopic } from '@/types/topic';
 
-import { ITopicService } from './type';
+import { ITopicService, LatestAssistantReply } from './type';
 
 export class ClientService extends BaseClientService implements ITopicService {
   private get topicModel(): TopicModel {
     return new TopicModel(clientDB as any, this.userId);
+  }
+
+  private get messageModel(): MessageModel {
+    return new MessageModel(clientDB as any, this.userId);
   }
 
   createTopic: ITopicService['createTopic'] = async (params) => {
@@ -47,6 +52,15 @@ export class ClientService extends BaseClientService implements ITopicService {
     const data = await this.topicModel.queryByKeyword(keyword, this.toDbSessionId(sessionId));
 
     return data as unknown as Promise<ChatTopic[]>;
+  };
+
+  getLatestAssistantRepliesBySession: ITopicService['getLatestAssistantRepliesBySession'] = async (
+    sessionId,
+  ) => {
+    const data = await this.messageModel.getLatestAssistantRepliesBySession(
+      this.toDbSessionId(sessionId) || '',
+    );
+    return data as unknown as Promise<LatestAssistantReply[]>;
   };
 
   getAllTopics: ITopicService['getAllTopics'] = async () => {

@@ -15,6 +15,16 @@ export interface QueryTopicParams {
   containerId?: string | null; // sessionId or groupId
   pageSize?: number;
 }
+export interface LatestAssistantReply {
+  content: string;
+  createdAt: string;
+  id: string;
+  model?: string;
+  provider?: string;
+  topicId: string;
+  topicTitle: string;
+  userName: string;
+}
 
 export interface ITopicService {
   createTopic(params: CreateTopicParams): Promise<string>;
@@ -30,6 +40,7 @@ export interface ITopicService {
   }): Promise<number>;
   rankTopics(limit?: number): Promise<TopicRankItem[]>;
   searchTopics(keyword: string, sessionId?: string, groupId?: string): Promise<ChatTopic[]>;
+  getLatestAssistantRepliesBySession(sessionId: string): Promise<LatestAssistantReply[]>;
 
   updateTopic(id: string, data: Partial<ChatTopic>): Promise<any>;
 

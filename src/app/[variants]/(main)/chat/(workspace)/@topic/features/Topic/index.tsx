@@ -15,7 +15,6 @@ const Topic = memo(() => {
   return (
     <>
       {!isInbox && <Divider style={{ margin: 0 }} />}
-
       <Header />
       <TopicListContent />
     </>

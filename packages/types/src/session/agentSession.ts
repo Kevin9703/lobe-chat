@@ -26,6 +26,7 @@ export interface LobeAgentSession {
   tags?: string[];
   type: LobeSessionType.Agent;
   updatedAt: Date;
+  userId?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export interface LobeGroupSession {
   tags?: string[];
   type: LobeSessionType.Group;
   updatedAt: Date;
+  userId?: string;
 }
 
 export interface LobeAgentSettings {

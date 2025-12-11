@@ -38,6 +38,13 @@ export class ServerService implements ITopicService {
       sessionId: this.toDbSessionId(sessionId),
     }) as any;
 
+  getLatestAssistantRepliesBySession: ITopicService['getLatestAssistantRepliesBySession'] = (
+    sessionId,
+  ) =>
+    lambdaClient.topic.getLatestAssistantRepliesBySession.query({
+      sessionId: this.toDbSessionId(sessionId),
+    }) as any;
+
   updateTopic: ITopicService['updateTopic'] = (id, data) =>
     lambdaClient.topic.updateTopic.mutate({ id, value: data });
 

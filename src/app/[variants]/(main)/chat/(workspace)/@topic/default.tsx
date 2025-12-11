@@ -6,6 +6,7 @@ import { RouteVariants } from '@/utils/server/routeVariants';
 
 import Desktop from './_layout/Desktop';
 import Mobile from './_layout/Mobile';
+import Memory from './features/Memory';
 import SkeletonList from './features/SkeletonList';
 import Topic from './features/Topic';
 
@@ -20,6 +21,7 @@ const Sidebar = async (props: DynamicLayoutProps) => {
 
   return (
     <Layout>
+      <Memory />
       <ConfigSwitcher />
       <Topic />
     </Layout>

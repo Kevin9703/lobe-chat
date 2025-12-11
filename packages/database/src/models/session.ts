@@ -57,7 +57,7 @@ export class SessionModel {
       limit: pageSize,
       offset,
       orderBy: [desc(sessions.updatedAt)],
-      where: and(eq(sessions.userId, this.userId), not(eq(sessions.slug, INBOX_SESSION_ID))),
+      where: not(eq(sessions.slug, INBOX_SESSION_ID)),
       with: { agentsToSessions: { columns: {}, with: { agent: true } }, group: true },
     });
   };
@@ -91,10 +91,7 @@ export class SessionModel {
     idOrSlug: string,
   ): Promise<(SessionItem & { agent: AgentItem }) | undefined> => {
     const result = await this.db.query.sessions.findFirst({
-      where: and(
-        or(eq(sessions.id, idOrSlug), eq(sessions.slug, idOrSlug)),
-        eq(sessions.userId, this.userId),
-      ),
+      where: and(or(eq(sessions.id, idOrSlug), eq(sessions.slug, idOrSlug))),
       with: { agentsToSessions: { columns: {}, with: { agent: true } }, group: true },
     });
 

@@ -12,6 +12,8 @@ import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
 import { useSessionStore } from '@/store/session';
 import { sessionSelectors } from '@/store/session/selectors';
+import { useUserStore } from '@/store/user';
+import { userProfileSelectors } from '@/store/user/selectors';
 
 import ConfigLayout from '../ConfigLayout';
 import SystemRole from './SystemRole';
@@ -48,6 +50,16 @@ const AgentConfig = memo(() => {
     setEditing(true);
     setOpen(true);
   };
+
+  // 获取当前会话和用户信息，检查权限
+  const currentSession = useSessionStore(sessionSelectors.currentSession);
+  const currentUserId = useUserStore(userProfileSelectors.userId);
+  const isSessionOwner = currentSession?.userId === currentUserId;
+
+  // 如果不是会话创建者，不显示角色设定面板
+  if (!isSessionOwner) {
+    return null;
+  }
 
   return (
     <ConfigLayout

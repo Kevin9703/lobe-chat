@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { MessageModel } from '@/database/models/message';
 import { TopicModel } from '@/database/models/topic';
 import { getServerDB } from '@/database/server';
 import { authedProcedure, publicProcedure, router } from '@/libs/trpc/lambda';
@@ -90,6 +91,17 @@ export const topicRouter = router({
   getAllTopics: topicProcedure.query(async ({ ctx }) => {
     return ctx.topicModel.queryAll();
   }),
+
+  getLatestAssistantRepliesBySession: topicProcedure
+    .input(z.object({ sessionId: z.string().nullable().optional() }))
+    .query(async ({ input, ctx }) => {
+      const serverDB = await getServerDB();
+      if (!serverDB) {
+        return [];
+      }
+      const messageModel = new MessageModel(serverDB, ctx.userId);
+      return messageModel.getLatestAssistantRepliesBySession(input.sessionId || '');
+    }),
 
   // TODO: this procedure should be used with authedProcedure
   getTopics: publicProcedure
