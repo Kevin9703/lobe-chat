@@ -66,7 +66,7 @@ export class KnowledgeBaseModel {
         updatedAt: knowledgeBases.updatedAt,
       })
       .from(knowledgeBases)
-      .where(eq(knowledgeBases.userId, this.userId))
+      // .where(eq(knowledgeBases.userId, this.userId))
       .orderBy(desc(knowledgeBases.updatedAt));
 
     return data as KnowledgeBaseItem[];
@@ -74,7 +74,7 @@ export class KnowledgeBaseModel {
 
   findById = async (id: string) => {
     return this.db.query.knowledgeBases.findFirst({
-      where: and(eq(knowledgeBases.id, id), eq(knowledgeBases.userId, this.userId)),
+      where: and(eq(knowledgeBases.id, id)),
     });
   };
 

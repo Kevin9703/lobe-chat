@@ -195,7 +195,7 @@ export class FileModel {
     // 1. query where
     let whereClause = and(
       q ? ilike(files.name, `%${q}%`) : undefined,
-      eq(files.userId, this.userId),
+      // eq(files.userId, this.userId),
     );
     if (category && category !== FilesTabs.All) {
       const fileTypePrefix = this.getFileTypePrefix(category as FilesTabs);
