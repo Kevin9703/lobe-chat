@@ -35,23 +35,34 @@ const SessionItem = memo<SessionItemProps>(({ id }) => {
   const [active] = useSessionStore((s) => [s.activeId === id]);
   const [loading] = useChatStore((s) => [chatSelectors.isAIGenerating(s) && id === s.activeId]);
 
-  const [pin, title, avatar, avatarBackground, updateAt, members, model, group, sessionType] =
-    useSessionStore((s) => {
-      const session = sessionSelectors.getSessionById(id)(s);
-      const meta = session.meta;
+  const [
+    pin,
+    title,
+    description,
+    avatar,
+    avatarBackground,
+    updateAt,
+    members,
+    model,
+    group,
+    sessionType,
+  ] = useSessionStore((s) => {
+    const session = sessionSelectors.getSessionById(id)(s);
+    const meta = session.meta;
 
-      return [
-        sessionHelpers.getSessionPinned(session),
-        sessionMetaSelectors.getTitle(meta),
-        sessionMetaSelectors.getAvatar(meta),
-        meta.backgroundColor,
-        session?.updatedAt,
-        (session as LobeGroupSession).members,
-        session.type === 'agent' ? (session as any).model : undefined,
-        session?.group,
-        session.type,
-      ];
-    });
+    return [
+      sessionHelpers.getSessionPinned(session),
+      sessionMetaSelectors.getTitle(meta),
+      sessionMetaSelectors.getDescription(meta),
+      sessionMetaSelectors.getAvatar(meta),
+      meta.backgroundColor,
+      session?.updatedAt,
+      (session as LobeGroupSession).members,
+      session.type === 'agent' ? (session as any).model : undefined,
+      session?.group,
+      session.type,
+    ];
+  });
 
   const showModel = sessionType === 'agent' && model && model !== defaultModel;
 
@@ -124,6 +135,7 @@ const SessionItem = memo<SessionItemProps>(({ id }) => {
         avatar={sessionAvatar as any} // Fix: Bypass complex intersection type ReactNode & avatar type
         avatarBackground={avatarBackground}
         date={updateAt?.valueOf()}
+        description={description}
         draggable={isDesktop}
         key={id}
         loading={loading}

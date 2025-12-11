@@ -90,6 +90,18 @@ export class SessionModel {
   findByIdOrSlug = async (
     idOrSlug: string,
   ): Promise<(SessionItem & { agent: AgentItem }) | undefined> => {
+    if (idOrSlug === INBOX_SESSION_ID) {
+      const result = await this.db.query.sessions.findFirst({
+        where: and(
+          or(eq(sessions.id, idOrSlug), eq(sessions.slug, idOrSlug)),
+          eq(sessions.userId, this.userId),
+        ),
+        with: { agentsToSessions: { columns: {}, with: { agent: true } }, group: true },
+      });
+      if (!result) return;
+
+      return { ...result, agent: (result?.agentsToSessions?.[0] as any)?.agent } as any;
+    }
     const result = await this.db.query.sessions.findFirst({
       where: and(or(eq(sessions.id, idOrSlug), eq(sessions.slug, idOrSlug))),
       with: { agentsToSessions: { columns: {}, with: { agent: true } }, group: true },
