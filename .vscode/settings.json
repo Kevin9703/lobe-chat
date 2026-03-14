@@ -22,6 +22,12 @@
     // support mdx
     "mdx"
   ],
+  "i18n-ally.localesPaths": [
+    "locales",
+    "src/locales",
+    "apps/desktop/resources/locales",
+    "apps/desktop/src/main/locales"
+  ],
   "npm.packageManager": "pnpm",
   "search.exclude": {
     "**/node_modules": true,
